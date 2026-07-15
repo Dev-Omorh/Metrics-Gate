@@ -1,5 +1,5 @@
 function DataTable() {
-  return <div>Dashboard</div>;
+  return <div>ta</div>;
 }
 
 export default DataTable;

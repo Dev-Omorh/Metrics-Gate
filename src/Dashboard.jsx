@@ -1,7 +1,7 @@
-import Navbar from "../components/Navbar";
-import StatsCard from "../components/StatsCard";
-import DataTable from "../components/DataTable";
-import data from "../data";
+import Navbar from "./component/Navbar";
+import StatsCard from "./component/StatsCard";
+import DataTable from "./component/DataTable";
+import data from "./Data";
 
 function Dashboard() {
   const total = data.length;
