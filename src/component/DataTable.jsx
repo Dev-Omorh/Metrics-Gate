@@ -8,12 +8,12 @@ function DataTable({ records, onReview }) {
         <thead className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
           <tr>
             <th className="px-6 py-4 font-semibold">ID</th>
-            <th className="px-6 py-4 font-semibold">Plant & Operator</th>
+            <th className="px-6 py-4 font-semibold">Plant & Line</th>
             <th className="px-6 py-4 font-semibold">Shift Info</th>
-            <th className="px-6 py-4 font-semibold">Production (units)</th>
-            <th className="px-6 py-4 font-semibold">Efficiency</th>
-            <th className="px-6 py-4 font-semibold">Downtime</th>
-            <th className="px-6 py-4 font-semibold">Safety</th>
+            <th className="px-6 py-4 font-semibold">Production (tons)</th>
+            <th className="px-6 py-4 font-semibold">Kiln Runtime (hrs)</th>
+            <th className="px-6 py-4 font-semibold">Heat Consumption (MJ/kg)</th>
+            <th className="px-6 py-4 font-semibold">TSR (%)</th>
             <th className="px-6 py-4 font-semibold">Status</th>
             <th className="px-6 py-4 font-semibold text-right">Action</th>
           </tr>
@@ -22,10 +22,10 @@ function DataTable({ records, onReview }) {
         <tbody className="divide-y divide-slate-800/40">
           {records.length > 0 ? (
             records.map((record) => (
-              <TableRow 
-                key={record.id} 
-                record={record} 
-                onReview={onReview} 
+              <TableRow
+                key={record.id}
+                record={record}
+                onReview={onReview}
               />
             ))
           ) : (

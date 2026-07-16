@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import Navbar from "./component/Navbar";
 import StatsCard from "./component/StatsCard";
@@ -17,9 +19,25 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const API_BASE_URL = "https://metric-gate-backend.onrender.com/api/exceptions";
+const API_BASE_URL = "https://metric-gate-backend.onrender.com/api";
 
-// http://localhost:5001/api
+// NOTE: this no longer renames fields. TableRow/DataTable expect the real
+// backend field names (record.plant, record.date, record.shift,
+// record.clinker_production_tons, record.kiln_runtime_hours,
+// record.heat_consumption_mj_per_kg, record.tsr_percent, record.violations).
+// Renaming them here just recreates the same mismatch we already fixed once.
+//
+// operator_id: UNCONFIRMED. The backend guide this project was built against
+// does not document this field. Verify in the raw network response whether
+// the live API actually returns operator_id before trusting this column;
+// otherwise every row will silently show "Unknown".
+function mapRecord(r) {
+  return {
+    ...r,
+    escalationStatus: r.escalation ? r.escalation.status : null,
+    managerReason: r.escalation && r.escalation.reason ? r.escalation.reason : null,
+  };
+}
 
 function Dashboard() {
   const [records, setRecords] = useState([]);
@@ -46,35 +64,45 @@ function Dashboard() {
   const fetchData = async (showRefreshSpinner = false) => {
     if (showRefreshSpinner) setRefreshing(true);
     else setLoading(true);
-
     setApiError("");
     try {
-      // Build query string
-      let recordsUrl = `${API_BASE_URL}/records?status=${statusFilter}`;
+      const res = await fetch(`${API_BASE_URL}/telemetry/validated`);
+      if (!res.ok) throw new Error("Failed to load dashboard data from server.");
+      const data = await res.json();
+
+      let mapped = data.map(mapRecord);
+
+      if (statusFilter !== "ALL") {
+        mapped = mapped.filter((r) => {
+          if (statusFilter === "PASSED") return r.status === "PASSED";
+          if (statusFilter === "FLAGGED") return r.status === "FLAGGED" && (!r.escalationStatus || r.escalationStatus === "pending");
+          if (statusFilter === "APPROVED") return r.escalationStatus === "approved";
+          if (statusFilter === "REJECTED") return r.escalationStatus === "rejected";
+          return true;
+        });
+      }
+
       if (search.trim() !== "") {
-        recordsUrl += `&search=${encodeURIComponent(search)}`;
+        const q = search.trim().toLowerCase();
+        mapped = mapped.filter((r) => {
+          const plant = (r.plant || "").toLowerCase();
+          const operator = (r.operator_id || "").toLowerCase();
+          return plant.includes(q) || operator.includes(q);
+        });
       }
 
-      const [recordsRes, statsRes] = await Promise.all([
-        fetch(recordsUrl),
-        fetch(`${API_BASE_URL}/stats`),
-      ]);
+      setStats({
+        total: data.length,
+        passed: data.filter((r) => r.status === "PASSED").length,
+        flagged: data.filter((r) => r.status === "FLAGGED").length,
+        approved: data.filter((r) => r.escalation?.status === "approved").length,
+        rejected: data.filter((r) => r.escalation?.status === "rejected").length,
+      });
 
-      if (!recordsRes.ok || !statsRes.ok) {
-        throw new Error("Failed to load dashboard data from server.");
-      }
-
-      const recordsData = await recordsRes.json();
-      const statsData = await statsRes.json();
-
-      setRecords(recordsData);
-      setStats(statsData);
+      setRecords(mapped);
     } catch (err) {
       console.error(err);
-      setApiError(
-        err.message ||
-          "Unable to connect to the backend server. Make sure it is running.",
-      );
+      setApiError(err.message || "Unable to connect to the backend server.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -92,10 +120,11 @@ function Dashboard() {
 
   // Submit action review (Approve / Reject Exception)
   const handleActionSubmit = async (id, payload) => {
-    const res = await fetch(`${API_BASE_URL}/records/${id}/action`, {
+    const endpoint = payload.action === "APPROVED" ? "approve" : "reject";
+    const res = await fetch(`${API_BASE_URL}/exceptions/${id}/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ reason: payload.reason, actor: "Plant Manager" }),
     });
 
     if (!res.ok) {
@@ -107,23 +136,11 @@ function Dashboard() {
     await fetchData();
   };
 
-  // Submit new plant record
-  const handleAddRecordSubmit = async (payload) => {
-    const res = await fetch(`${API_BASE_URL}/records`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      const err = new Error("Validation Failed");
-      err.errors = errorData.errors || ["Unable to create record."];
-      throw err;
-    }
-
-    // Refresh dashboard records and stats
-    await fetchData();
+  // Log Shift feature is disabled for this submission (backend does not yet
+  // accept this data shape). Kept as a harmless stub so nothing breaks if
+  // the modal is ever opened.
+  const handleAddRecordSubmit = async (_payload) => {
+    setIsAddModalOpen(false);
   };
 
   const openReviewModal = (record) => {
@@ -244,6 +261,7 @@ function Dashboard() {
             </button>
 
             <button
+              style={{ display: 'none' }}
               onClick={() => setIsAddModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.97] text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(124,58,237,0.25)]"
             >

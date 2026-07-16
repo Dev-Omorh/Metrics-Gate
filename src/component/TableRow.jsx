@@ -1,9 +1,13 @@
 import StatusBadge from "./StatusBadge";
-import { Eye, ShieldAlert, CheckCircle2, User, Clock, AlertCircle } from "lucide-react";
+import { ShieldAlert, CheckCircle2, Clock } from "lucide-react";
 
 function TableRow({ record, onReview }) {
-  // Check if there are violations
-  const hasViolations = record.flagReasons && record.flagReasons.length > 0;
+  const violations = record.violations || [];
+  const isFlagged = record.status === "FLAGGED";
+
+  // Only highlight a value amber if a real backend rule actually flagged it.
+  // Do not guess thresholds client side, let the backend's violations array decide.
+  const violatesRule = (ruleId) => violations.some((v) => v.ruleId === ruleId);
 
   return (
     <tr className="border-b border-slate-800/60 bg-slate-900/10 hover:bg-slate-800/40 transition-colors group">
@@ -12,15 +16,17 @@ function TableRow({ record, onReview }) {
         #{record.id}
       </td>
 
-      {/* Plant & Operator */}
+      {/* Plant & Line
+          Note: the backend has no operator field (no operator name or ID).
+          If the dashboard needs an operator column, that field must be added
+          to the backend response first, not invented on the frontend. */}
       <td className="px-6 py-4">
         <div className="space-y-0.5">
           <div className="font-semibold text-white group-hover:text-violet-400 transition-colors text-sm">
-            {record.plantName}
+            {record.plant}
           </div>
-          <div className="text-xs text-slate-400 flex items-center gap-1">
-            <User size={10} className="text-slate-500" />
-            {record.operatorName}
+          <div className="text-xs text-slate-400">
+            {record.line}
           </div>
         </div>
       </td>
@@ -28,58 +34,63 @@ function TableRow({ record, onReview }) {
       {/* Shift Date & Type */}
       <td className="px-6 py-4">
         <div className="space-y-0.5">
-          <div className="text-sm text-slate-300 font-medium">{record.shiftDate}</div>
+          <div className="text-sm text-slate-300 font-medium">{record.date}</div>
           <div className="text-xs text-slate-400 flex items-center gap-1">
             <Clock size={10} className="text-slate-500" />
-            {record.shiftType} Shift
+            {record.shift} Shift
           </div>
         </div>
       </td>
 
-      {/* Production Volume */}
-      <td className={`px-6 py-4 text-sm font-medium ${record.productionVolume < 100 ? "text-amber-400" : "text-slate-300"}`}>
-        {record.productionVolume.toLocaleString()}
+      {/* Clinker Production (tons) */}
+      <td className="px-6 py-4 text-sm font-medium text-slate-300">
+        {record.clinker_production_tons != null
+          ? record.clinker_production_tons.toLocaleString()
+          : "—"}
       </td>
 
-      {/* Efficiency Rate */}
-      <td className={`px-6 py-4 text-sm font-medium ${record.efficiencyRate < 70 ? "text-amber-400" : "text-slate-300"}`}>
-        {record.efficiencyRate}%
+      {/* Kiln Runtime (hours) — this is the one rule the backend guide
+          actually documents: RULE_1_TIME_LIMIT, max 24 hours per day. */}
+      <td
+        className={`px-6 py-4 text-sm font-medium ${
+          violatesRule("RULE_1_TIME_LIMIT") ? "text-amber-400" : "text-slate-300"
+        }`}
+      >
+        {record.kiln_runtime_hours != null ? `${record.kiln_runtime_hours} hrs` : "—"}
       </td>
 
-      {/* Downtime Hours */}
-      <td className={`px-6 py-4 text-sm font-medium ${record.downtimeHours > 4 ? "text-amber-400" : "text-slate-300"}`}>
-        {record.downtimeHours} hr{record.downtimeHours !== 1 && "s"}
+      {/* Heat Consumption (MJ/kg) */}
+      <td className="px-6 py-4 text-sm font-medium text-slate-300">
+        {record.heat_consumption_mj_per_kg != null
+          ? record.heat_consumption_mj_per_kg.toLocaleString()
+          : "—"}
       </td>
 
-      {/* Safety Incidents */}
-      <td className="px-6 py-4">
-        {record.safetyIncidents > 0 ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-400">
-            <AlertCircle size={12} />
-            {record.safetyIncidents} incident{record.safetyIncidents !== 1 && "s"}
-          </span>
-        ) : (
-          <span className="text-slate-500 text-sm">0</span>
-        )}
+      {/* Thermal Substitution Rate (%) */}
+      <td className="px-6 py-4 text-sm font-medium text-slate-300">
+        {record.tsr_percent != null ? `${record.tsr_percent}%` : "—"}
       </td>
 
-      {/* Status Badge & Resolution Reason */}
+      {/* Status Badge & Violation Details */}
       <td className="px-6 py-4">
         <div className="space-y-1">
-          <div>
-            <StatusBadge status={record.status} />
-          </div>
-          {record.managerReason && (
-            <div className="max-w-[200px] text-[10px] text-slate-400 leading-normal border-l border-slate-700 pl-1.5 italic">
-              <span className="font-semibold text-slate-300 not-italic">Reason:</span> {record.managerReason}
-            </div>
-          )}
+          <StatusBadge status={record.status} />
+          {isFlagged &&
+            violations.map((v) => (
+              <div
+                key={v.ruleId}
+                className="max-w-[220px] text-[10px] text-slate-400 leading-normal border-l border-slate-700 pl-1.5 italic"
+              >
+                <span className="font-semibold text-slate-300 not-italic">{v.flag}:</span>{" "}
+                {v.description}
+              </div>
+            ))}
         </div>
       </td>
 
       {/* Actions */}
       <td className="px-6 py-4 text-right">
-        {record.status === "FLAGGED" ? (
+        {isFlagged ? (
           <button
             onClick={() => onReview(record)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.97] text-slate-950 text-xs font-bold transition-all shadow-[0_0_10px_rgba(245,158,11,0.15)]"
