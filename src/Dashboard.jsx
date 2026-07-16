@@ -6,17 +6,17 @@ import StatsCard from "./component/StatsCard";
 import DataTable from "./component/DataTable";
 import ActionModal from "./component/ActionModal";
 import AddRecordModal from "./component/AddRecordModal";
-import { 
-  Database, 
-  CheckCircle2, 
-  AlertTriangle, 
-  ShieldCheck, 
-  XCircle, 
-  Search, 
-  Plus, 
-  RefreshCw, 
+import {
+  Database,
+  CheckCircle2,
+  AlertTriangle,
+  ShieldCheck,
+  XCircle,
+  Search,
+  Plus,
+  RefreshCw,
   Filter,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 const API_BASE_URL = "https://metric-gate-backend.onrender.com/api";
@@ -46,7 +46,7 @@ function Dashboard() {
     passed: 0,
     flagged: 0,
     approved: 0,
-    rejected: 0
+    rejected: 0,
   });
 
   const [search, setSearch] = useState("");
@@ -161,7 +161,6 @@ function Dashboard() {
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-        
         {/* API Error Alert */}
         {apiError && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start gap-3 shadow-lg">
@@ -169,7 +168,7 @@ function Dashboard() {
             <div>
               <h4 className="font-semibold text-rose-300">Connection Error</h4>
               <p className="text-sm text-rose-400/90 mt-1">{apiError}</p>
-              <button 
+              <button
                 onClick={() => fetchData()}
                 className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors active:scale-[0.98]"
               >
@@ -181,41 +180,40 @@ function Dashboard() {
 
         {/* Dynamic Statistics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <StatsCard 
-            title="Total Records" 
-            value={stats.total} 
-            icon={Database} 
+          <StatsCard
+            title="Total Records"
+            value={stats.total}
+            icon={Database}
             accentClass="from-slate-500/10 to-transparent border-slate-800 text-slate-400"
           />
-          <StatsCard 
-            title="Passed" 
-            value={stats.passed} 
-            icon={CheckCircle2} 
+          <StatsCard
+            title="Passed"
+            value={stats.passed}
+            icon={CheckCircle2}
             accentClass="from-emerald-500/10 to-transparent border-emerald-500/10 text-emerald-400 hover:border-emerald-500/30"
           />
-          <StatsCard 
-            title="Exceptions" 
-            value={stats.flagged} 
-            icon={AlertTriangle} 
+          <StatsCard
+            title="Exceptions"
+            value={stats.flagged}
+            icon={AlertTriangle}
             accentClass="from-amber-500/10 to-transparent border-amber-500/10 text-amber-400 hover:border-amber-500/30"
           />
-          <StatsCard 
-            title="Approved" 
-            value={stats.approved} 
-            icon={ShieldCheck} 
+          <StatsCard
+            title="Approved"
+            value={stats.approved}
+            icon={ShieldCheck}
             accentClass="from-sky-500/10 to-transparent border-sky-500/10 text-sky-400 hover:border-sky-500/30"
           />
-          <StatsCard 
-            title="Rejected" 
-            value={stats.rejected} 
-            icon={XCircle} 
+          <StatsCard
+            title="Rejected"
+            value={stats.rejected}
+            icon={XCircle}
             accentClass="from-rose-500/10 to-transparent border-rose-500/10 text-rose-400 hover:border-rose-500/30"
           />
         </div>
 
         {/* Search, Filter and Actions Toolbar */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-slate-900/40 p-4 border border-slate-800 rounded-2xl backdrop-blur-sm">
-          
           {/* Left: Tab status filters */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
             <div className="flex items-center gap-1.5 text-xs text-slate-500 mr-2 shrink-0">
@@ -256,7 +254,10 @@ function Dashboard() {
               className="rounded-xl border border-slate-850 p-2 bg-slate-950/40 text-slate-400 hover:text-white hover:border-slate-850 hover:bg-slate-900 active:scale-[0.97] transition-all disabled:opacity-50"
               title="Refresh Data"
             >
-              <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+              <RefreshCw
+                size={15}
+                className={refreshing ? "animate-spin" : ""}
+              />
             </button>
 
             <button
@@ -273,23 +274,25 @@ function Dashboard() {
         {/* Records Table Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-md font-bold text-white tracking-wide">Plant Shift Ledger</h3>
-            <span className="text-xs text-slate-500">{records.length} records found</span>
+            <h3 className="text-md font-bold text-white tracking-wide">
+              Plant Shift Ledger
+            </h3>
+            <span className="text-xs text-slate-500">
+              {records.length} records found
+            </span>
           </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 border border-slate-800 rounded-2xl bg-slate-900/20">
               <RefreshCw className="animate-spin text-violet-500" size={32} />
-              <span className="text-xs text-slate-400 font-medium">Fetching operation ledger...</span>
+              <span className="text-xs text-slate-400 font-medium">
+                Fetching operation ledger...
+              </span>
             </div>
           ) : (
-            <DataTable 
-              records={records} 
-              onReview={openReviewModal} 
-            />
+            <DataTable records={records} onReview={openReviewModal} />
           )}
         </div>
-
       </main>
 
       {/* Review Exception Action Modal */}
